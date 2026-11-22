@@ -1,0 +1,8 @@
+.nodal-panel {
+  --nodal-accent: #6c5ce7;
+  --nodal-surface: #141417;
+  border-color: rgba(108, 92, 231, 0.32);
+}
+.nodal-status-dot { background: #42d17a; }
+.nodal-button-primary { background: var(--nodal-accent); border-color: var(--nodal-accent); }
+.nodal-launcher { background: var(--nodal-accent); border-color: var(--nodal-accent); }

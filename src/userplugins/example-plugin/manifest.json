@@ -1,0 +1,9 @@
+{
+  "id": "example-plugin",
+  "name": "Example Plugin",
+  "description": "Starter plugin showing Nodal's plugin structure.",
+  "version": "1.0.0",
+  "author": "Nodal",
+  "entry": "index.js",
+  "style": "style.css"
+}

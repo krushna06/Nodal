@@ -1,0 +1,17 @@
+{
+  "name": "nodal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nodal extends the functionality of Medal by enhancing it with new features.",
+  "license": "MIT",
+  "scripts": {
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -File build\\build.ps1",
+    "install": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\install.ps1",
+    "install:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\install.ps1 -Action Install",
+    "repair:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\install.ps1 -Action Repair",
+    "uninstall:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\uninstall.ps1",
+    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File installer\\verify.ps1",
+    "launch:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File build\\launch-dev.ps1",
+    "test:runtime": "node scripts\\test-runtime.js"
+  }
+}

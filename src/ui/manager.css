@@ -1,0 +1,24 @@
+.nodal-settings-group [data-nodal-view] { user-select: none; }
+.nodal-settings-group [data-nodal-view]:focus-visible { outline: 2px solid rgb(var(--stroke-500, 107 92 231) / 0.5); outline-offset: 1px; }
+.nodal-status-line:empty { min-height: 1.25rem; }
+.nodal-quick-css-editor {
+  min-height: 320px;
+  resize: vertical;
+  background: rgb(0 0 0 / 0.24);
+  font-family: var(--code-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+.nodal-quick-css-editor::placeholder { color: rgb(var(--foreground-500, 145 145 151) / 0.8); }
+.nodal-plugin-drop {
+  user-select: none;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.nodal-plugin-drop[data-dragging="true"] {
+  border-color: rgb(var(--stroke-500, 107 92 231) / 0.8);
+  background: rgb(108 92 231 / 0.12);
+}
