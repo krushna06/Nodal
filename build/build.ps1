@@ -11,9 +11,11 @@ $order = @(
     'src\core\logger.js',
     'src\core\events.js',
     'src\core\storage.js',
+    'src\core\zip.js',
     'src\core\plugin-manager.js',
     'src\core\plugin-importer.js',
     'src\core\theme-manager.js',
+    'src\core\theme-importer.js',
     'src\core\quick-css.js',
     'src\ui\manager.js',
     'src\plugins\janitor-plugin.js',
@@ -44,8 +46,15 @@ function Get-SafePath([string]$root, [string]$value, [string]$label) {
 }
 
 $managerCss = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'src\ui\manager.css')
-$themeCss = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'src\themes\default.css')
-$parts.Add('(function (i) { i.css = { manager: ' + (ConvertTo-JsString $managerCss) + ', defaultTheme: ' + (ConvertTo-JsString $themeCss) + ' }; })(window.__NodalInternal);')
+$themesRoot = Join-Path $projectRoot 'src\themes'
+$themeFiles = Get-ChildItem -LiteralPath $themesRoot -Filter '*.css' | Sort-Object Name
+$themeEntries = New-Object System.Collections.Generic.List[string]
+foreach ($themeFile in $themeFiles) {
+    $themeKey = [System.IO.Path]::GetFileNameWithoutExtension($themeFile.Name) + 'Theme'
+    $themeContent = Get-Content -Raw -LiteralPath $themeFile.FullName
+    $themeEntries.Add("'" + $themeKey + "': " + (ConvertTo-JsString $themeContent))
+}
+$parts.Add('(function (i) { i.css = { manager: ' + (ConvertTo-JsString $managerCss) + ', ' + ($themeEntries -join ', ') + ' }; })(window.__NodalInternal);')
 
 $userPlugins = New-Object System.Collections.Generic.List[object]
 if (Test-Path -LiteralPath $userPluginsRoot -PathType Container) {
@@ -126,7 +135,9 @@ $encoding = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($outputPath, $bundle, $encoding)
 
 Copy-Item -LiteralPath (Join-Path $projectRoot 'src\ui\manager.css') -Destination (Join-Path $outDir 'manager.css') -Force
-Copy-Item -LiteralPath (Join-Path $projectRoot 'src\themes\default.css') -Destination (Join-Path $outDir 'default-theme.css') -Force
+foreach ($themeFile in $themeFiles) {
+    Copy-Item -LiteralPath $themeFile.FullName -Destination (Join-Path $outDir ($themeFile.BaseName + '-theme.css')) -Force
+}
 
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $outputPath).Hash
 Write-Host "BUILD OK: $outputPath"

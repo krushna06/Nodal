@@ -4,7 +4,9 @@
 .nodal-quick-css-editor {
   min-height: 320px;
   resize: vertical;
-  background: rgb(0 0 0 / 0.24);
+  background-color: var(--color-third-layer, #1f1f20);
+  color: var(--color-foreground-0, #fff);
+  border-color: color-mix(in oklab, var(--color-stroke-0, #fff) 16%, transparent);
   font-family: var(--code-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12px;
   line-height: 1.5;
@@ -13,7 +15,10 @@
   overflow-wrap: normal;
   overflow-x: auto;
 }
-.nodal-quick-css-editor::placeholder { color: rgb(var(--foreground-500, 145 145 151) / 0.8); }
+.nodal-quick-css-editor::placeholder {
+  color: var(--color-foreground-500, #9a9aa0);
+  opacity: 0.9;
+}
 .nodal-plugin-drop {
   user-select: none;
   transition: border-color 120ms ease, background-color 120ms ease;
@@ -21,4 +26,109 @@
 .nodal-plugin-drop[data-dragging="true"] {
   border-color: rgb(var(--stroke-500, 107 92 231) / 0.8);
   background: rgb(108 92 231 / 0.12);
+}
+.nodal-theme-guide {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-family: var(--code-font, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+.nodal-select-wrap { position: relative; }
+.nodal-theme-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--color-third-layer, #1f1f20);
+  color: var(--color-foreground-0, #fff);
+  border-color: color-mix(in oklab, var(--color-stroke-0, #fff) 24%, transparent);
+  cursor: pointer;
+}
+.nodal-theme-trigger:hover { background-color: var(--color-second-layer, #171718); }
+.nodal-theme-trigger:focus-visible,
+.nodal-theme-trigger[aria-expanded="true"] {
+  outline: 2px solid var(--color-brand-primary-400, #6c5ce7);
+  outline-offset: 1px;
+}
+.nodal-theme-chevron {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.nodal-theme-trigger[aria-expanded="true"] .nodal-theme-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+.nodal-theme-menu[hidden] { display: none; }
+.nodal-theme-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  width: 100%;
+  min-width: 220px;
+  max-height: 320px;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 4px;
+  background-color: var(--color-third-layer, #1f1f20);
+  border: 1px solid color-mix(in oklab, var(--color-stroke-0, #fff) 24%, transparent);
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+}
+.nodal-theme-option {
+  background-color: transparent;
+  color: var(--color-foreground-0, #fff);
+  outline: none;
+}
+.nodal-theme-option:hover,
+.nodal-theme-option:focus-visible,
+.nodal-theme-option[aria-selected="true"] {
+  background-color: color-mix(in oklab, var(--color-brand-primary-500, #6c5ce7) 22%, transparent);
+  color: var(--color-foreground-0, #fff);
+}
+.nodal-theme-option:focus-visible {
+  outline: 1px solid var(--color-brand-primary-400, #6c5ce7);
+}
+.nodal-theme-check {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--color-brand-primary-400, #6c5ce7);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nodal-theme-option-description { color: var(--color-foreground-500, #9a9aa0); }
+.nodal-support-banner {
+  background: #c3a3ce;
+  color: #24172b;
+}
+.nodal-support-banner .text-foreground-0,
+.nodal-support-banner .text-foreground-300 {
+  color: #24172b;
+}
+.nodal-support-banner .nodal-support-badge {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.32);
+  color: #24172b;
+}
+.nodal-support-banner .nodal-support-link {
+  color: #24172b;
+  background: rgb(255 255 255 / 0.32);
+  border-color: rgb(36 23 43 / 0.18);
+  text-decoration: none;
+}
+.nodal-support-banner .nodal-support-link:hover {
+  background: rgb(255 255 255 / 0.46);
+  text-decoration: none;
 }

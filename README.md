@@ -8,7 +8,7 @@ Download the latest release from [GitHub Releases](https://github.com/krushna06/
 
 Or, install from source:
 
-Run the following command from the repository root:
+Run from the repo root:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\install.ps1
@@ -35,7 +35,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\verify.ps1
 
 ## Plugins
 
-Built-ins: `janitor`, `adblocker`, and `devtools`.
+Built-ins: `janitor`, `adblocker`, and `devtools`. `devtools` is opt-in and stays disabled until you enable it in Settings → Nodal → Plugins.
 
 The starter plugin is in `src\userplugins\example-plugin\`:
 
@@ -46,6 +46,37 @@ src\userplugins\example-plugin\
   style.css       styles loaded while enabled
 ```
 
-Copy it, change the `id` and `name`, then rebuild. `manifest.json` needs a lowercase `id` and `name`; `entry` defaults to `index.js`, and `style.css` is picked up automatically. The example appears in **Settings → Nodal → Plugins** and can be enabled there.
+Copy it, change the `id` and `name`, then rebuild. `manifest.json` needs a lowercase `id` and `name`; `entry` defaults to `index.js`, and `style.css` is picked up automatically. The starter itself stays out of the Plugins UI so only usable plugins are listed.
 
 In **Settings → Nodal → Plugins**, pick or drop a `plugin.zip` with the same files. Imported plugins enable immediately, persist locally, and can be removed there. Quick CSS has **Apply** and **Clear** only.
+
+## Themes
+
+Built-ins: `Nodal Dark`, `Nodal Violet`, `Nodal Light`, `Nodal Ocean`, `Nodal Emerald`, `Nodal Rose`, `Nodal Amber`, and `Nodal Nord`.
+
+Adding a built-in is just dropping a `src\themes\<id>.css` file there and adding its descriptor to `src\core\runtime.js`; the build picks up every CSS file automatically.
+
+Themes restyle all of Medal by overriding the design tokens Medal already uses (`--color-first-layer`, `--color-third-layer`, `--color-foreground-0`, `--color-stroke-0`, `--color-brand-primary-*`, `--sidebar`, `--scrollbar-*`, and more). `style.css` in a theme can target any Medal element, not just Nodal. The active theme id is also set on `<html data-nodal-theme="...">`.
+
+In **Settings → Nodal → Themes**, click a theme to apply it instantly, or pick/drop a `theme.zip`:
+
+```text
+theme.zip
+  manifest.json   theme details + optional token overrides
+  style.css       any CSS for Medal
+```
+
+Example `manifest.json`:
+
+```json
+{
+  "id": "my-theme",
+  "name": "My Theme",
+  "description": "Purple Medal.",
+  "version": "1.0.0",
+  "variables": { "--color-third-layer": "oklch(22% 0.05 310)" },
+  "style": "style.css"
+}
+```
+
+`style.css` may be omitted when `variables` is present. Token-only themes and CSS-only themes both work. Imported themes apply immediately, persist locally, and can be removed there. Use **Quick CSS** for one-off tweaks on top of a theme, and `Nodal.themes.tokens()` in DevTools to inspect live values.

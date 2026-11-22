@@ -42,8 +42,13 @@
     listenerInstalled = false;
   }
 
+  function rememberOptIn(plugin) {
+    if (plugin && plugin.id === 'devtools') internal.storage.set('devtoolsUserEnabled', true);
+  }
+
   internal.devtoolsPlugin = {
     register: function () {
+      internal.events.on('plugin:enabled', rememberOptIn);
       return internal.plugins.register({
         id: 'devtools',
         name: 'DevTools Shortcut',

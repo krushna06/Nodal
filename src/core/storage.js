@@ -10,6 +10,7 @@
     version: '0.1.0',
     enabledPlugins: [],
     importedPlugins: [],
+    importedThemes: [],
     theme: 'default',
     quickCss: '',
     quickCssEnabled: false,
@@ -101,6 +102,7 @@
     });
     if (!Array.isArray(config.enabledPlugins)) config.enabledPlugins = [];
     if (!Array.isArray(config.importedPlugins)) config.importedPlugins = [];
+    if (!Array.isArray(config.importedThemes)) config.importedThemes = [];
     if (!config.preferences || typeof config.preferences !== 'object') config.preferences = {};
     return config;
   }

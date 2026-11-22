@@ -5,6 +5,8 @@
   var GROUP_ID = 'nodal-settings-group';
   var VIEW_ID = 'nodal-settings-view';
   var STYLE_ID = 'nodal-manager-styles';
+  var REPO_URL = 'https://github.com/krushna06/Nodal';
+  var DONATE_URL = 'https://paypal.me/nostep06';
 
   var BASE_ITEM = 'flex w-full cursor-pointer items-center gap-2 rounded-lg px-4 py-1.5 text-base font-medium aria-disabled:pointer-events-none aria-disabled:opacity-50';
   var ACTIVE_ITEM = ['bg-neutral-0/16', 'text-foreground-0'];
@@ -19,6 +21,9 @@
   var previousActiveClasses = null;
   var observer = null;
   var syncTimer = null;
+  var themeMenu = null;
+  var themeMenuTrigger = null;
+  var themeMenuCleanup = null;
 
   function element(tag, className, text) {
     var node = document.createElement(tag);
@@ -110,6 +115,90 @@
     return line;
   }
 
+  function closeThemeMenu() {
+    if (themeMenuCleanup) {
+      themeMenuCleanup();
+      themeMenuCleanup = null;
+    }
+    if (themeMenu && themeMenu.parentNode) themeMenu.parentNode.removeChild(themeMenu);
+    themeMenu = null;
+    if (themeMenuTrigger && themeMenuTrigger.isConnected) themeMenuTrigger.setAttribute('aria-expanded', 'false');
+    themeMenuTrigger = null;
+  }
+
+  function openThemeMenu(trigger, menu) {
+    closeThemeMenu();
+    themeMenuTrigger = trigger;
+    trigger.setAttribute('aria-expanded', 'true');
+    if (menu.parentNode) menu.parentNode.removeChild(menu);
+    trigger.parentNode.appendChild(menu);
+    menu.hidden = false;
+    themeMenu = menu;
+
+    var options = Array.prototype.slice.call(menu.querySelectorAll('[data-theme-option]'));
+    var selectedIndex = 0;
+    options.forEach(function (option, index) {
+      if (option.getAttribute('aria-selected') === 'true') selectedIndex = index;
+    });
+
+    function focusOption(index) {
+      if (options.length === 0) return;
+      var next = (index + options.length) % options.length;
+      options.forEach(function (option, optionIndex) {
+        option.setAttribute('tabindex', optionIndex === next ? '0' : '-1');
+      });
+      options[next].focus();
+    }
+
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeThemeMenu();
+        trigger.focus();
+        return;
+      }
+      if (event.key === 'Tab') {
+        closeThemeMenu();
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        var current = options.indexOf(document.activeElement);
+        focusOption(current < 0 ? selectedIndex : current + (event.key === 'ArrowDown' ? 1 : -1));
+        return;
+      }
+      if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        focusOption(event.key === 'Home' ? 0 : options.length - 1);
+      }
+    }
+
+    function onOutsidePointerDown(event) {
+      if (trigger.parentNode.contains(event.target) || menu.contains(event.target)) return;
+      closeThemeMenu();
+    }
+
+    function onLayoutChange(event) {
+      if (menu.contains(event.target)) return;
+      closeThemeMenu();
+    }
+
+    themeMenuCleanup = function () {
+      document.removeEventListener('pointerdown', onOutsidePointerDown, true);
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('scroll', onLayoutChange, true);
+      window.removeEventListener('resize', onLayoutChange);
+      menu.hidden = true;
+    };
+
+    document.addEventListener('pointerdown', onOutsidePointerDown, true);
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('scroll', onLayoutChange, true);
+    window.addEventListener('resize', onLayoutChange);
+    focusOption(selectedIndex);
+  }
+
   async function importPluginFile(file, host) {
     if (!file) return;
     notify('Importing ' + file.name + '…');
@@ -122,19 +211,31 @@
     }
   }
 
-  function renderImporter(host) {
-    var box = card();
-    box.id = 'nodal-plugin-importer';
-    box.appendChild(element('div', 'text-base font-bold text-foreground-0', 'Import a plugin'));
-    box.appendChild(element('div', 'text-sm text-foreground-300', 'Drop a community plugin.zip here, or choose one from your PC. Plugins are enabled immediately and saved locally.'));
+  async function importThemeFile(file, host) {
+    if (!file) return;
+    notify('Importing ' + file.name + '…');
+    try {
+      var theme = await internal.themeImporter.importFile(file);
+      notify(theme.name + ' installed and applied');
+      renderThemes(host);
+    } catch (error) {
+      notify('Import failed: ' + ((error && error.message) || error));
+    }
+  }
 
-    var drop = element('div', 'nodal-plugin-drop flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stroke-0/24 px-4 py-6 text-center', 'Drop plugin.zip here, or click to browse');
-    drop.id = 'nodal-plugin-drop';
-    drop.setAttribute('data-nodal-action', 'plugin-drop-zone');
+  function renderDropImporter(host, options) {
+    var box = card();
+    box.id = options.boxId;
+    box.appendChild(element('div', 'text-base font-bold text-foreground-0', options.title));
+    box.appendChild(element('div', 'text-sm text-foreground-300', options.description));
+
+    var drop = element('div', 'nodal-plugin-drop flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-stroke-0/24 px-4 py-6 text-center', options.dropLabel);
+    drop.id = options.dropId;
+    drop.setAttribute('data-nodal-action', options.dropAction);
 
     var input = document.createElement('input');
     input.type = 'file';
-    input.id = 'nodal-plugin-file-input';
+    input.id = options.inputId;
     input.accept = '.zip,application/zip';
     input.style.display = 'none';
 
@@ -150,22 +251,52 @@
       event.stopPropagation();
       drop.removeAttribute('data-dragging');
       var file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-      importPluginFile(file, host);
+      options.onFile(file, host);
     });
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
       input.value = '';
-      importPluginFile(file, host);
+      options.onFile(file, host);
     });
 
     box.appendChild(drop);
     box.appendChild(input);
 
-    var choose = actionButton('Choose plugin.zip', false, 'choose-plugin');
+    var choose = actionButton(options.chooseLabel, false, options.chooseAction);
     choose.addEventListener('click', function () { input.click(); });
     box.appendChild(choose);
 
     host.appendChild(box);
+  }
+
+  function renderImporter(host) {
+    renderDropImporter(host, {
+      boxId: 'nodal-plugin-importer',
+      title: 'Import a plugin',
+      description: 'Drop a community plugin.zip here, or choose one from your PC. Plugins are enabled immediately and saved locally.',
+      dropLabel: 'Drop plugin.zip here, or click to browse',
+      dropId: 'nodal-plugin-drop',
+      dropAction: 'plugin-drop-zone',
+      inputId: 'nodal-plugin-file-input',
+      chooseLabel: 'Choose plugin.zip',
+      chooseAction: 'choose-plugin',
+      onFile: importPluginFile
+    });
+  }
+
+  function renderThemeImporter(host) {
+    renderDropImporter(host, {
+      boxId: 'nodal-theme-importer',
+      title: 'Import a theme',
+      description: 'Drop a theme.zip with manifest.json and style.css here, or choose one from your PC. Themes are applied immediately and saved locally.',
+      dropLabel: 'Drop theme.zip here, or click to browse',
+      dropId: 'nodal-theme-drop',
+      dropAction: 'theme-drop-zone',
+      inputId: 'nodal-theme-file-input',
+      chooseLabel: 'Choose theme.zip',
+      chooseAction: 'choose-theme',
+      onFile: importThemeFile
+    });
   }
 
   function renderPlugins(host) {
@@ -173,7 +304,9 @@
     host.appendChild(viewHeader('Plugins', 'Manage Nodal plugins and import community plugins.'));
 
     var box = card();
-    var plugins = internal.plugins.list();
+    var plugins = internal.plugins.list().filter(function (plugin) {
+      return plugin.id !== 'example-plugin';
+    });
     if (plugins.length === 0) {
       box.appendChild(element('div', 'text-sm text-foreground-300', 'No plugins registered.'));
     }
@@ -221,39 +354,136 @@
   }
 
   function renderThemes(host) {
+    closeThemeMenu();
     host.textContent = '';
-    host.appendChild(viewHeader('Themes', 'Choose a Nodal theme. Medal itself is not redesigned.'));
+    host.appendChild(viewHeader('Themes', 'Click a theme to restyle all of Medal instantly.'));
+
+    var themes = internal.themes.list();
+    var selectedId = internal.themes.current() || (themes[0] && themes[0].id) || null;
+    function themeName(id) {
+      var found = Array.prototype.find.call(themes, function (theme) { return theme.id === id; });
+      return found ? found.name : 'Choose a theme';
+    }
 
     var box = card();
     var row = element('div', 'flex w-full flex-wrap items-center gap-3');
 
-    var select = element('select', 'min-w-0 flex-1 rounded-md border border-stroke-0/16 bg-transparent px-3 py-1.5 text-sm text-foreground-0 outline-none');
-    select.id = 'nodal-theme-select';
-    internal.themes.list().forEach(function (theme) {
-      var option = element('option', null, theme.name);
-      option.value = theme.id;
-      select.appendChild(option);
-    });
-    if (internal.themes.current()) select.value = internal.themes.current();
-    row.appendChild(select);
+    var selectWrap = element('div', 'nodal-select-wrap flex min-w-0 flex-1 items-center');
+    var trigger = element('button', 'nodal-theme-trigger flex w-full cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-left text-sm outline-none');
+    trigger.id = 'nodal-theme-select';
+    trigger.type = 'button';
+    trigger.setAttribute('data-slot', 'button');
+    trigger.setAttribute('data-theme-id', selectedId || '');
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    var label = element('span', 'nodal-theme-label flex min-w-0 flex-1 truncate', themeName(selectedId));
+    label.id = 'nodal-theme-label';
+    trigger.appendChild(label);
+    trigger.appendChild(element('span', 'nodal-theme-chevron'));
 
-    var apply = actionButton('Apply', true, 'apply-theme');
-    apply.addEventListener('click', function () {
-      var ok = internal.themes.apply(select.value);
-      notify(ok ? 'Theme applied: ' + select.value : 'Theme could not be applied');
+    var menu = element('div', 'nodal-theme-menu');
+    menu.id = 'nodal-theme-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.setAttribute('aria-label', 'Themes');
+    menu.hidden = true;
+    themes.forEach(function (theme) {
+      var option = element('div', 'nodal-theme-option flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-sm');
+      option.setAttribute('role', 'option');
+      option.setAttribute('data-theme-option', theme.id);
+      option.setAttribute('aria-selected', theme.id === selectedId ? 'true' : 'false');
+      option.setAttribute('tabindex', '-1');
+      var check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      check.setAttribute('class', 'nodal-theme-check');
+      check.setAttribute('viewBox', '0 0 16 16');
+      check.setAttribute('aria-hidden', 'true');
+      var checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      checkPath.setAttribute('d', 'M3 8.5l3.2 3.2L13 5');
+      check.appendChild(checkPath);
+      check.style.visibility = theme.id === selectedId ? 'visible' : 'hidden';
+      option.appendChild(check);
+      var text = element('div', 'flex min-w-0 flex-1 flex-col');
+      text.appendChild(element('span', 'truncate', theme.name));
+      if (theme.description) text.appendChild(element('span', 'nodal-theme-option-description truncate text-xs text-foreground-500', theme.description));
+      option.appendChild(text);
+      option.addEventListener('click', function () {
+        var ok = internal.themes.apply(theme.id);
+        notify(ok ? 'Theme applied: ' + theme.name : 'Theme could not be applied');
+        renderThemes(host);
+        var nextTrigger = document.getElementById('nodal-theme-select');
+        if (nextTrigger) nextTrigger.focus();
+      });
+      option.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          option.click();
+        }
+      });
+      menu.appendChild(option);
     });
-    row.appendChild(apply);
+
+    trigger.addEventListener('click', function () {
+      if (themeMenu === menu) closeThemeMenu();
+      else openThemeMenu(trigger, menu);
+    });
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (themeMenu !== menu) openThemeMenu(trigger, menu);
+      }
+    });
+
+    selectWrap.appendChild(trigger);
+    selectWrap.appendChild(menu);
+    row.appendChild(selectWrap);
 
     var disable = actionButton('Disable theme', false, 'disable-theme');
     disable.addEventListener('click', function () {
       internal.themes.disable();
       notify('Theme disabled');
+      renderThemes(host);
     });
     row.appendChild(disable);
 
     box.appendChild(row);
     box.appendChild(element('div', 'text-sm text-foreground-300', 'Selected theme: ' + (internal.themes.current() || 'none')));
+    box.appendChild(element('div', 'text-sm text-foreground-300', 'Themes override the color tokens and CSS Medal already uses across the whole app. Use Quick CSS for one-off tweaks.'));
     host.appendChild(box);
+
+    var guide = element('details', 'text-sm text-foreground-300');
+    guide.id = 'nodal-theme-guide';
+    guide.appendChild(element('summary', 'cursor-pointer font-bold text-foreground-0', 'Theme authoring example'));
+    guide.appendChild(element('pre', 'nodal-theme-guide mt-2 overflow-auto rounded-lg bg-neutral-0/4 p-3 text-xs text-foreground-300',
+      'theme.zip\n  manifest.json\n    { "id": "my-theme", "name": "My Theme",\n      "variables": { "--color-third-layer": "oklch(22% 0.05 310)" },\n      "style": "style.css" }\n  style.css\n    [data-testid="app-title-bar"] { border-bottom-color: pink; }\n\nThe active theme id is also set on <html data-nodal-theme="...">.'));
+    host.appendChild(guide);
+
+    var importedThemes = internal.themes.list().filter(function (theme) { return theme.source === 'imported'; });
+    if (importedThemes.length > 0) {
+      var importedBox = card();
+      importedBox.appendChild(element('div', 'text-base font-bold text-foreground-0', 'Imported themes'));
+      importedThemes.forEach(function (theme) {
+        var importedRow = element('div', 'flex w-full items-center justify-between gap-4 rounded-lg bg-neutral-0/4 p-4');
+        var info = element('div', 'flex min-w-0 flex-col gap-1');
+        var titleRow = element('div', 'flex flex-wrap items-center gap-2');
+        titleRow.appendChild(element('span', 'text-base font-bold text-foreground-0', theme.name));
+        titleRow.appendChild(element('span', 'text-xs text-foreground-500', 'v' + theme.version));
+        titleRow.appendChild(element('span', 'text-xs text-foreground-500', theme.source || 'imported'));
+        info.appendChild(titleRow);
+        info.appendChild(element('span', 'text-sm text-foreground-300', theme.description));
+        importedRow.appendChild(info);
+
+        var remove = actionButton('Remove', false, 'remove-theme');
+        remove.setAttribute('data-theme-id', theme.id);
+        remove.addEventListener('click', function () {
+          if (internal.themeImporter.remove(theme.id)) notify(theme.name + ' removed');
+          renderThemes(host);
+        });
+        importedRow.appendChild(remove);
+        importedBox.appendChild(importedRow);
+      });
+      host.appendChild(importedBox);
+    }
+
+    renderThemeImporter(host);
     host.appendChild(statusLine());
   }
 
@@ -280,7 +510,7 @@
     toolbar.appendChild(clear);
     box.appendChild(toolbar);
 
-    var editor = element('textarea', 'nodal-quick-css-editor w-full rounded-md border border-stroke-0/16 bg-neutral-1000 px-3 py-2 text-sm text-foreground-0 outline-none');
+    var editor = element('textarea', 'nodal-quick-css-editor w-full rounded-md border border-stroke-0/16 px-3 py-2 text-sm outline-none');
     editor.id = 'nodal-quick-css-editor';
     editor.value = internal.quickCss.get();
     editor.placeholder = '/* Paste CSS here. */\n@import url("https://example.com/theme.css");\n\n/* MEDAL APP SELECTORS GO HERE */';
@@ -297,16 +527,38 @@
 
   function renderAbout(host) {
     host.textContent = '';
-    host.appendChild(viewHeader('Nodal', 'A modified client for Medal.'));
+    host.appendChild(viewHeader('Nodal', 'A Vencord-inspired modification framework for Medal.'));
+
+    var support = element('div', 'nodal-support-banner flex w-full flex-col gap-3 rounded-lg p-5');
+    var supportTitle = element('div', 'flex items-center gap-3');
+    var heartBadge = element('span', 'nodal-support-badge');
+    var heart = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    heart.setAttribute('width', '16');
+    heart.setAttribute('height', '16');
+    heart.setAttribute('viewBox', '0 0 24 24');
+    heart.setAttribute('fill', 'currentColor');
+    heart.setAttribute('aria-hidden', 'true');
+    var heartPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    heartPath.setAttribute('d', 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+    heart.appendChild(heartPath);
+    heartBadge.appendChild(heart);
+    supportTitle.appendChild(heartBadge);
+    supportTitle.appendChild(element('div', 'text-base font-bold text-foreground-0', 'Support the Project'));
+    support.appendChild(supportTitle);
+    support.appendChild(element('div', 'text-sm text-foreground-300', 'Please consider supporting the development of Nodal by donating!'));
+
+    var supportLink = element('a', 'nodal-support-link inline-flex w-fit cursor-pointer items-center justify-center rounded-md border border-stroke-0/16 bg-neutral-0/16 px-3 py-1.5 text-sm font-medium text-foreground-0 hover:bg-neutral-0/24', 'Donate');
+    supportLink.href = DONATE_URL;
+    supportLink.target = '_blank';
+    supportLink.rel = 'noopener noreferrer';
+    support.appendChild(supportLink);
+    host.appendChild(support);
 
     var box = card();
     var rows = [
       ['Framework version', internal.runtime.version],
       ['Runtime status', 'Active'],
-      ['Storage backend', internal.storage.backend],
-      ['Loaded plugins', String(internal.plugins.list().length)],
-      ['Imported plugins', String(internal.plugins.list().filter(function (plugin) { return plugin.source === 'imported'; }).length)],
-      ['Selected theme', internal.themes.current() || 'none']
+      ['Created by', 'krushna06']
     ];
     rows.forEach(function (pair) {
       var row = element('div', 'flex items-center justify-between gap-6 border-b border-stroke-0/16 py-2 last:border-b-0');
@@ -314,11 +566,21 @@
       row.appendChild(element('span', 'text-sm font-medium text-foreground-0', pair[1]));
       box.appendChild(row);
     });
+
+    var repoRow = element('div', 'flex items-center justify-between gap-6 border-b border-stroke-0/16 py-2 last:border-b-0');
+    repoRow.appendChild(element('span', 'text-sm text-foreground-300', 'GitHub'));
+    var repoLink = element('a', 'nodal-support-link text-sm font-medium text-brand-primary-400 hover:underline', 'krushna06/Nodal');
+    repoLink.href = REPO_URL;
+    repoLink.target = '_blank';
+    repoLink.rel = 'noopener noreferrer';
+    repoRow.appendChild(repoLink);
+    box.appendChild(repoRow);
     host.appendChild(box);
     host.appendChild(statusLine());
   }
 
   function renderView() {
+    closeThemeMenu();
     if (!viewElement) return;
     var host = viewElement.firstChild;
     if (!host) return;
@@ -330,6 +592,10 @@
 
   function refreshPluginView() {
     if (currentView === 'plugins') renderView();
+  }
+
+  function refreshThemeView() {
+    if (currentView === 'themes') renderView();
   }
 
   function createView() {
@@ -385,6 +651,7 @@
   }
 
   function restore() {
+    closeThemeMenu();
     if (currentView === null) return;
     if (viewElement && viewElement.parentNode) viewElement.parentNode.removeChild(viewElement);
     viewElement = null;
@@ -417,6 +684,9 @@
 
   function sync() {
     var found = document.querySelector(PAGE_SELECTOR);
+    if (!found || (found !== page && page)) {
+      closeThemeMenu();
+    }
     if (!found) {
       if (currentView !== null) {
         currentView = null;
@@ -487,6 +757,8 @@
       ensureStyles();
       internal.events.on('plugin:imported', refreshPluginView);
       internal.events.on('plugin:removed', refreshPluginView);
+      internal.events.on('theme:imported', refreshThemeView);
+      internal.events.on('theme:removed', refreshThemeView);
       document.addEventListener('click', onClick, true);
       if (window.MutationObserver) {
         observer = new window.MutationObserver(scheduleSync);
