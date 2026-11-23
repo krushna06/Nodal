@@ -61,6 +61,7 @@
       var builtInThemes = [
         { id: 'default', name: 'Nodal Dark', description: 'Subtle dark theme that matches the existing Medal interface.' },
         { id: 'reimagined', name: 'Nodal Reimagined', description: 'Discord-inspired color palette.' },
+        { id: 'liquid-glass', name: 'Nodal Liquid Glass', description: 'iOS-style frosted glass panels, glass dock, and ambient colors.' },
         { id: 'violet', name: 'Nodal Violet', description: 'Purple layers, accents, and scrollbars across the whole Medal app.' },
         { id: 'light', name: 'Nodal Light', description: 'Bright surfaces and dark text across the whole Medal app.' },
         { id: 'ocean', name: 'Nodal Ocean', description: 'Deep blue layers with cyan accents.' },
@@ -84,12 +85,14 @@
 
       internal.janitorPlugin.register();
       internal.adblockerPlugin.register();
+      internal.privacyPlugin.register();
       internal.devtoolsPlugin.register();
 
       internal.pluginImporter.restoreUserPlugins();
       internal.pluginImporter.restore();
       seed('janitor');
       seed('adblocker');
+      seed('privacy');
       if (internal.storage.get('devtoolsSeeded', false) && !internal.storage.get('devtoolsUserEnabled', false)) {
         var enabled = internal.storage.getConfig().enabledPlugins;
         var index = enabled.indexOf('devtools');

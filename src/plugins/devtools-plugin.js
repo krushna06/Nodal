@@ -46,13 +46,18 @@
     if (plugin && plugin.id === 'devtools') internal.storage.set('devtoolsUserEnabled', true);
   }
 
+  function rememberOptOut(plugin) {
+    if (plugin && plugin.id === 'devtools') internal.storage.set('devtoolsUserEnabled', false);
+  }
+
   internal.devtoolsPlugin = {
     register: function () {
       internal.events.on('plugin:enabled', rememberOptIn);
+      internal.events.on('plugin:disabled', rememberOptOut);
       return internal.plugins.register({
         id: 'devtools',
-        name: 'DevTools Shortcut',
-        description: 'Enables Ctrl+Shift+I to toggle Medal\'s built-in developer tools.',
+        name: 'Unlock Developer Tools',
+        description: 'Unlocks Ctrl+Shift+I so you can toggle Medal\'s built-in developer tools.',
         version: '0.1.0',
         author: 'Nodal',
         start: function () {

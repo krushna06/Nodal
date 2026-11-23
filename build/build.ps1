@@ -20,6 +20,7 @@ $order = @(
     'src\ui\manager.js',
     'src\plugins\janitor-plugin.js',
     'src\plugins\adblocker-plugin.js',
+    'src\plugins\privacy-plugin.js',
     'src\plugins\devtools-plugin.js',
     'src\core\runtime.js',
     'src\bootstrap.js'

@@ -59,6 +59,7 @@
       { id: 'plugins', label: 'Plugins' },
       { id: 'themes', label: 'Themes' },
       { id: 'quick-css', label: 'Quick CSS' },
+      { id: 'settings', label: 'Settings' },
       { id: 'about', label: 'About' }
     ];
     views.forEach(function (view) {
@@ -295,13 +296,55 @@
     });
   }
 
+  function renderSettings(host) {
+    host.textContent = '';
+    host.appendChild(viewHeader('Settings', 'Quick controls for Nodal.'));
+
+    var box = card();
+    var title = 'Unlock Developer Tools';
+    var plugin = internal.plugins.get('devtools');
+
+    var row = element('div', 'flex w-full items-center justify-between gap-4 rounded-lg bg-neutral-0/4 p-4');
+    var info = element('div', 'flex min-w-0 flex-col gap-1');
+    var titleRow = element('div', 'flex flex-wrap items-center gap-2');
+    titleRow.appendChild(element('span', 'text-base font-bold text-foreground-0', title));
+    titleRow.appendChild(element('span', 'text-xs font-bold tracking-wider uppercase ' + (plugin && plugin.enabled ? 'text-brand-primary-400' : 'text-foreground-500'), plugin && plugin.enabled ? 'Active' : 'Inactive'));
+    info.appendChild(titleRow);
+    info.appendChild(element('span', 'text-sm text-foreground-300', 'Unlocks Ctrl+Shift+I so you can toggle Medal\'s built-in developer tools.'));
+    row.appendChild(info);
+
+    var toggle = element('label', 'nodal-switch');
+    var input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = !!(plugin && plugin.enabled);
+    input.setAttribute('data-plugin-id', 'devtools');
+    input.setAttribute('data-nodal-action', 'toggle-setting-plugin');
+    input.setAttribute('aria-label', title);
+    var track = element('span', 'nodal-switch-track');
+    track.appendChild(element('span', 'nodal-switch-thumb'));
+    toggle.appendChild(input);
+    toggle.appendChild(track);
+    input.addEventListener('change', function () {
+      if (!internal.plugins.get('devtools')) return;
+      if (input.checked) internal.plugins.enable('devtools');
+      else internal.plugins.disable('devtools');
+      notify(title + (internal.plugins.get('devtools').enabled ? ' enabled' : ' disabled'));
+      renderSettings(host);
+    });
+    row.appendChild(toggle);
+
+    box.appendChild(row);
+    host.appendChild(box);
+    host.appendChild(statusLine());
+  }
+
   function renderPlugins(host) {
     host.textContent = '';
     host.appendChild(viewHeader('Plugins', 'Manage Nodal plugins and import community plugins.'));
 
     var box = card();
     var plugins = internal.plugins.list().filter(function (plugin) {
-      return plugin.id !== 'example-plugin';
+      return plugin.id !== 'example-plugin' && plugin.id !== 'devtools';
     });
     if (plugins.length === 0) {
       box.appendChild(element('div', 'text-sm text-foreground-300', 'No plugins registered.'));
@@ -580,14 +623,15 @@
     if (!viewElement) return;
     var host = viewElement.firstChild;
     if (!host) return;
-    if (currentView === 'plugins') renderPlugins(host);
+    if (currentView === 'settings') renderSettings(host);
+    else if (currentView === 'plugins') renderPlugins(host);
     else if (currentView === 'themes') renderThemes(host);
     else if (currentView === 'quick-css') renderQuickCss(host);
     else if (currentView === 'about') renderAbout(host);
   }
 
   function refreshPluginView() {
-    if (currentView === 'plugins') renderView();
+    if (currentView === 'plugins' || currentView === 'settings') renderView();
   }
 
   function refreshThemeView() {

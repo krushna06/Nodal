@@ -46,8 +46,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\verify.ps1
 
 ## Plugins
 
-Built-ins: `janitor`, `adblocker`, and `devtools`. `devtools` is opt-in and stays disabled until you enable it in Settings → Nodal → Plugins.
-
+Built-ins: `janitor`, `adblocker`, `privacy` and `devtools`.
 The starter plugin is in `src\userplugins\example-plugin\`:
 
 ```text

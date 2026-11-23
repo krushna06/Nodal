@@ -132,3 +132,51 @@
   background: rgb(255 255 255 / 0.46);
   text-decoration: none;
 }
+.nodal-switch {
+  position: relative;
+  display: inline-flex;
+  width: 42px;
+  height: 24px;
+  flex: none;
+  cursor: pointer;
+}
+.nodal-switch input {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.nodal-switch-track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid color-mix(in oklab, var(--color-stroke-0, #fff) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-foreground-500, #9a9aa0) 34%, transparent);
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.nodal-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  transition: transform 160ms ease;
+}
+.nodal-switch input:checked + .nodal-switch-track {
+  border-color: var(--color-brand-primary-400, #6c5ce7);
+  background: var(--color-brand-primary-500, #6c5ce7);
+}
+.nodal-switch input:checked + .nodal-switch-track .nodal-switch-thumb {
+  transform: translateX(18px);
+}
+.nodal-switch input:focus-visible + .nodal-switch-track {
+  outline: 2px solid var(--color-brand-primary-400, #6c5ce7);
+  outline-offset: 2px;
+}
