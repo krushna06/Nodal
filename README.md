@@ -63,7 +63,7 @@ In **Settings → Nodal → Plugins**, pick or drop a `plugin.zip` with the same
 
 ## Themes
 
-Built-ins: `Nodal Dark`, `Nodal Violet`, `Nodal Light`, `Nodal Ocean`, `Nodal Emerald`, `Nodal Rose`, `Nodal Amber`, and `Nodal Nord`.
+Built-ins: `Nodal Dark`, `Nodal Violet`, `Nodal Light`, `Nodal Ocean`, `Nodal Emerald`, `Nodal Rose`, `Nodal Amber`, `Nodal Nord`, and `Nodal Reimagined`.
 
 Adding a built-in is just dropping a `src\themes\<id>.css` file there and adding its descriptor to `src\core\runtime.js`; the build picks up every CSS file automatically.
 

@@ -79,11 +79,7 @@
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
     var group = createGroup();
-    var languageRow = Array.prototype.find.call(sidebar.children, function (child) {
-      return child.className && child.className.indexOf('border-t') !== -1;
-    });
-    if (languageRow) sidebar.insertBefore(group, languageRow);
-    else sidebar.appendChild(group);
+    sidebar.insertBefore(group, sidebar.firstChild);
   }
 
   function viewHeader(title, subtitle) {

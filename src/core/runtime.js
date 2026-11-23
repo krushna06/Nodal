@@ -60,13 +60,14 @@
 
       var builtInThemes = [
         { id: 'default', name: 'Nodal Dark', description: 'Subtle dark theme that matches the existing Medal interface.' },
+        { id: 'reimagined', name: 'Nodal Reimagined', description: 'Discord-inspired color palette.' },
         { id: 'violet', name: 'Nodal Violet', description: 'Purple layers, accents, and scrollbars across the whole Medal app.' },
         { id: 'light', name: 'Nodal Light', description: 'Bright surfaces and dark text across the whole Medal app.' },
         { id: 'ocean', name: 'Nodal Ocean', description: 'Deep blue layers with cyan accents.' },
         { id: 'emerald', name: 'Nodal Emerald', description: 'Forest green layers with fresh green accents.' },
         { id: 'rose', name: 'Nodal Rose', description: 'Warm plum layers with rose accents.' },
         { id: 'amber', name: 'Nodal Amber', description: 'Warm dark layers with golden accents.' },
-        { id: 'nord', name: 'Nodal Nord', description: 'Cool light layers with blue-gray accents.' }
+        { id: 'nord', name: 'Nodal Nord', description: 'Cool light layers with blue-gray accents.' },
       ];
       builtInThemes.forEach(function (theme) {
         theme.version = VERSION;
