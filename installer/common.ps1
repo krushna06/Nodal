@@ -31,6 +31,11 @@ $ExtractedParent = Split-Path -Parent $ExtractedRoot
 $DevRuntime = Join-Path $ExtractedParent 'medal-dev-runtime'
 $DevAsar = Join-Path $DevRuntime 'resources\app.asar'
 $InstalledAsar = Join-Path $env:LOCALAPPDATA 'Medal\current\resources\app.asar'
+if ($env:NODAL_INSTALLED_ASAR) { $InstalledAsar = $env:NODAL_INSTALLED_ASAR }
+if ($env:NODAL_MEDAL_ROOT) { $MedalRoot = $env:NODAL_MEDAL_ROOT }
+else { $MedalRoot = Split-Path (Split-Path (Split-Path $InstalledAsar)) }
+$AsarBackupPath = if ($env:NODAL_ASAR_BACKUP) { $env:NODAL_ASAR_BACKUP } else { Join-Path $BackupDir 'app.asar.original' }
+$SkipDevAsar = $env:NODAL_SKIP_DEV_ASAR -eq '1'
 
 function Write-NodalLog([string]$message) {
     New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -64,6 +69,7 @@ function Stop-NodalDevApp {
 }
 
 function Restore-NodalDevAsar {
+    if ($SkipDevAsar) { return }
     if (-not (Test-Path -LiteralPath $DevAsar -PathType Leaf)) { return }
     if (-not (Test-Path -LiteralPath $InstalledAsar -PathType Leaf)) {
         Write-NodalLog 'Installed app.asar not found; dev runtime archive left unchanged.'
@@ -73,7 +79,32 @@ function Restore-NodalDevAsar {
     Write-NodalLog 'Restored pristine app.asar in the isolated dev runtime.'
 }
 
+function Stop-NodalInstalledApp {
+    if (-not (Test-Path -LiteralPath $MedalRoot -PathType Container)) { return }
+    $prefix = $MedalRoot.TrimEnd('\') + '\'
+    $processes = Get-CimInstance Win32_Process | Where-Object {
+        $_.ExecutablePath -and $_.ExecutablePath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
+    }
+    foreach ($process in $processes) {
+        Write-NodalLog "Stopping Medal process $($process.ProcessId) so the installed app can be changed."
+        Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    if ($processes) { Start-Sleep -Milliseconds 800 }
+}
+
+function Restore-NodalInstalledAsar {
+    if (-not (Test-Path -LiteralPath $AsarBackupPath -PathType Leaf)) { return }
+    if (-not (Test-Path -LiteralPath $InstalledAsar -PathType Leaf)) {
+        Write-NodalLog 'Installed app.asar not found; pristine backup left in place.'
+        return
+    }
+    Stop-NodalInstalledApp
+    Copy-Item -LiteralPath $AsarBackupPath -Destination $InstalledAsar -Force
+    Write-NodalLog 'Restored the original installed app.asar.'
+}
+
 function Update-NodalDevAsar {
+    if ($SkipDevAsar) { return }
     if (-not (Test-Path -LiteralPath $DevRuntime -PathType Container)) { return }
     if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
         throw 'npx is required to refresh the dev app archive. Install Node.js or use build\launch-dev.ps1.'
@@ -127,6 +158,8 @@ function Install-Nodal {
         originalRendererHash = $originalHash
         preloadHash = $preloadHash
         bootstrapTag = $BootstrapTag
+        installedAsar = $InstalledAsar
+        asarBackup = $AsarBackupPath
         version = '0.1.0'
     }
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $ManifestPath -Encoding UTF8
@@ -195,7 +228,11 @@ function Uninstall-Nodal([bool]$PreserveDevAsar = $false) {
         }
     }
     if (Test-Path -LiteralPath $ManifestPath -PathType Leaf) { Remove-Item -LiteralPath $ManifestPath -Force }
-    if (-not $PreserveDevAsar) { Restore-NodalDevAsar }
+    if (Test-Path -LiteralPath $AsarBackupPath -PathType Leaf) {
+        Restore-NodalInstalledAsar
+    } elseif (-not $PreserveDevAsar) {
+        Restore-NodalDevAsar
+    }
 
     $result = Get-Content -Raw -LiteralPath $HtmlPath
     if (([regex]::Matches($result, [regex]::Escape($BootstrapTag))).Count -ne 0) { throw 'Validation failed: bootstrap tag still present.' }

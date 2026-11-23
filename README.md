@@ -4,9 +4,8 @@ Nodal extends the functionality of Medal by enhancing it with new features.
 
 ## Install
 
-Download the latest release from [GitHub Releases](https://github.com/krushna06/Nodal/releases).
-
-Or, install from source:
+Download the latest release from [GitHub Releases](https://github.com/krushna06/Nodal/releases) and run `NodalInstaller.exe`.
+To install from source:
 
 Run from the repo root:
 
@@ -23,6 +22,18 @@ Use the arrow keys to navigate: ↓ ↑ → ←
     Repair Nodal
     Uninstall Nodal
 ```
+
+## Screenshots
+
+<table>
+  <tr>
+    <td colspan="2" align="center"><b>Plugins</b><br><img src="screenshots/Plugins.png" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Theme 1</b><br><img src="screenshots/Theme1.png" width="100%"></td>
+    <td align="center"><b>Theme 2</b><br><img src="screenshots/Theme2.png" width="100%"></td>
+  </tr>
+</table>
 
 ## Development
 
