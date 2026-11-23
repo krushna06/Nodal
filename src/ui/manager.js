@@ -296,44 +296,129 @@
     });
   }
 
-  function renderSettings(host) {
-    host.textContent = '';
-    host.appendChild(viewHeader('Settings', 'Quick controls for Nodal.'));
-
-    var box = card();
-    var title = 'Unlock Developer Tools';
-    var plugin = internal.plugins.get('devtools');
-
+  function settingRow(title, description, checked, dataName, dataValue) {
     var row = element('div', 'flex w-full items-center justify-between gap-4 rounded-lg bg-neutral-0/4 p-4');
     var info = element('div', 'flex min-w-0 flex-col gap-1');
     var titleRow = element('div', 'flex flex-wrap items-center gap-2');
     titleRow.appendChild(element('span', 'text-base font-bold text-foreground-0', title));
-    titleRow.appendChild(element('span', 'text-xs font-bold tracking-wider uppercase ' + (plugin && plugin.enabled ? 'text-brand-primary-400' : 'text-foreground-500'), plugin && plugin.enabled ? 'Active' : 'Inactive'));
+    var status = element('span', 'text-xs font-bold tracking-wider uppercase ' + (checked ? 'text-brand-primary-400' : 'text-foreground-500'), checked ? 'Active' : 'Inactive');
+    titleRow.appendChild(status);
     info.appendChild(titleRow);
-    info.appendChild(element('span', 'text-sm text-foreground-300', 'Unlocks Ctrl+Shift+I so you can toggle Medal\'s built-in developer tools.'));
+    info.appendChild(element('span', 'text-sm text-foreground-300', description));
     row.appendChild(info);
 
     var toggle = element('label', 'nodal-switch');
     var input = document.createElement('input');
     input.type = 'checkbox';
-    input.checked = !!(plugin && plugin.enabled);
-    input.setAttribute('data-plugin-id', 'devtools');
-    input.setAttribute('data-nodal-action', 'toggle-setting-plugin');
+    input.checked = checked;
     input.setAttribute('aria-label', title);
+    if (dataName) input.setAttribute(dataName, dataValue);
     var track = element('span', 'nodal-switch-track');
     track.appendChild(element('span', 'nodal-switch-thumb'));
     toggle.appendChild(input);
     toggle.appendChild(track);
-    input.addEventListener('change', function () {
-      if (!internal.plugins.get('devtools')) return;
-      if (input.checked) internal.plugins.enable('devtools');
-      else internal.plugins.disable('devtools');
-      notify(title + (internal.plugins.get('devtools').enabled ? ' enabled' : ' disabled'));
-      renderSettings(host);
-    });
     row.appendChild(toggle);
 
-    box.appendChild(row);
+    return {
+      row: row,
+      input: input,
+      status: status,
+      set: function (value) {
+        input.checked = value;
+        status.textContent = value ? 'Active' : 'Inactive';
+        status.className = 'text-xs font-bold tracking-wider uppercase ' + (value ? 'text-brand-primary-400' : 'text-foreground-500');
+      }
+    };
+  }
+
+  function renderSettings(host) {
+    host.textContent = '';
+    host.appendChild(viewHeader('Settings', 'Quick controls for Nodal.'));
+
+    var box = card();
+
+    var rpc = settingRow(
+      'Discord RPC',
+      'Show Medal activity such as clipping with a method on Discord.',
+      true,
+      'data-setting',
+      'discord-rpc'
+    );
+    rpc.input.disabled = true;
+    rpc.input.setAttribute('data-nodal-action', 'toggle-discord-rpc');
+    box.appendChild(rpc.row);
+
+    function rpcAvailable() {
+      return !!(window.MedalIPC && typeof window.MedalIPC.getSetting === 'function' && typeof window.MedalIPC.updateSetting === 'function');
+    }
+
+    function loadRpc() {
+      if (!rpcAvailable()) {
+        rpc.input.disabled = false;
+        rpc.set(true);
+        return;
+      }
+      try {
+        var request = window.MedalIPC.getSetting('DiscordRpcEnabled');
+        Promise.resolve(request).then(function (value) {
+          var enabled = value === undefined || value === null ? true : value !== false;
+          if (value === undefined || value === null) {
+            Promise.resolve(window.MedalIPC.updateSetting('DiscordRpcEnabled', true)).catch(function () {});
+          }
+          if (rpc.input.isConnected) {
+            rpc.set(enabled);
+            rpc.input.disabled = false;
+          }
+        }).catch(function () {
+          if (rpc.input.isConnected) {
+            rpc.set(true);
+            rpc.input.disabled = false;
+          }
+        });
+      } catch (error) {
+        rpc.input.disabled = false;
+        rpc.set(true);
+      }
+    }
+
+    rpc.input.addEventListener('change', function () {
+      var enabled = rpc.input.checked;
+      if (!rpcAvailable()) {
+        notify('Discord RPC settings are unavailable');
+        rpc.set(true);
+        return;
+      }
+      rpc.input.disabled = true;
+      Promise.resolve(window.MedalIPC.updateSetting('DiscordRpcEnabled', enabled)).then(function () {
+        notify('Discord RPC ' + (enabled ? 'enabled' : 'disabled'));
+        rpc.set(enabled);
+        rpc.input.disabled = false;
+      }).catch(function () {
+        notify('Discord RPC could not be updated');
+        rpc.set(!enabled);
+        rpc.input.disabled = false;
+      });
+    });
+
+    loadRpc();
+
+    var devtools = settingRow(
+      'Unlock Developer Tools',
+      'Unlocks Ctrl+Shift+I so you can toggle Medal\'s built-in developer tools.',
+      !!(internal.plugins.get('devtools') && internal.plugins.get('devtools').enabled),
+      'data-plugin-id',
+      'devtools'
+    );
+    devtools.input.setAttribute('data-nodal-action', 'toggle-setting-plugin');
+    devtools.input.addEventListener('change', function () {
+      if (!internal.plugins.get('devtools')) return;
+      if (devtools.input.checked) internal.plugins.enable('devtools');
+      else internal.plugins.disable('devtools');
+      notify('Unlock Developer Tools ' + (internal.plugins.get('devtools').enabled ? 'enabled' : 'disabled'));
+      renderSettings(host);
+    });
+    box.appendChild(devtools.row);
+
     host.appendChild(box);
     host.appendChild(statusLine());
   }
